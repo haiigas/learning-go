@@ -80,7 +80,56 @@ A simple REST API built with Go for managing user data. This project demonstrate
     "address": "Bandung, Indonesia"
   }
   ```
-- **Response**: Returns the created user with ID
+- **Response**: Returns the created user with ID (without created_at and updated_at)
+
+### Get User Detail
+- **Endpoint**: `GET /v1/users/:id`
+- **Description**: Retrieve a specific user by ID
+- **Response**:
+  ```json
+  {
+    "status": true,
+    "message": "fetch user detail",
+    "data": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "08123456789",
+      "address": "Jakarta, Indonesia",
+      "created_at": "2025-11-18T10:30:00Z",
+      "updated_at": "2025-11-18T10:30:00Z"
+    }
+  }
+  ```
+
+### Update User
+- **Endpoint**: `PUT /v1/users/:id`
+- **Description**: Update a specific user
+- **Request Body** (all fields optional):
+  ```json
+  {
+    "name": "Jane Doe Updated",
+    "email": "jane.updated@example.com",
+    "phone": "08198765432",
+    "address": "Bandung, Indonesia"
+  }
+  ```
+- **Response**: Returns the updated user
+  ```json
+  {
+    "status": true,
+    "message": "user updated successfully",
+    "data": {
+      "id": 1,
+      "name": "Jane Doe Updated",
+      "email": "jane.updated@example.com",
+      "phone": "08198765432",
+      "address": "Bandung, Indonesia",
+      "created_at": "2025-11-18T10:30:00Z",
+      "updated_at": "2025-11-18T11:45:00Z"
+    }
+  }
+  ```
 
 ## Running with Auto-reload
 
