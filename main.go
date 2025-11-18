@@ -29,6 +29,14 @@ func main() {
 		}
 	})
 
+	v1.HandleFunc("/users/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			utils.JSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		h.GetUserDetail(w, r)
+	})
+
 	http.Handle("/v1/", http.StripPrefix("/v1", v1))
 
 	log.Println("Server running on http://localhost:8080")

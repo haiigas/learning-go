@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"learning/db"
 	"learning/models"
@@ -95,5 +97,35 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Status:  true,
 		Message: "user created successfully",
 		Data:    response.ToCreateUserResponse(&user),
+	})
+}
+
+func (h *UserHandler) GetUserDetail(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/users/"), "/")
+	if len(parts) == 0 || parts[0] == "" {
+		utils.JSON(w, http.StatusBadRequest, map[string]string{"error": "user id required"})
+		return
+	}
+
+	id, err := strconv.Atoi(parts[0])
+	if err != nil {
+		utils.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
+		return
+	}
+
+	var user models.User
+	if err := h.DB.Preload("Biodata").First(&user, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			utils.JSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+			return
+		}
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "query error"})
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, utils.Response{
+		Status:  true,
+		Message: "fetch user detail",
+		Data:    response.ToUserResponse(&user),
 	})
 }
