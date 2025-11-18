@@ -16,6 +16,7 @@ A simple REST API built with Go for managing user data. This project demonstrate
    ```
 
 3. **Set up the database**:
+   
    Create the `users` table:
    ```sql
      CREATE TABLE users (
@@ -27,6 +28,7 @@ A simple REST API built with Go for managing user data. This project demonstrate
      ```
 
 4. **Configure database connection**:
+   
    Update the database connection string in `db/connection.go` with your MySQL credentials
 
 ## API Endpoints
