@@ -80,7 +80,7 @@ A simple REST API built with Go for managing user data. This project demonstrate
     "address": "Bandung, Indonesia"
   }
   ```
-- **Response**: Returns the created user with ID (without created_at and updated_at)
+- **Response**: Returns the created user with ID
 
 ### Get User Detail
 - **Endpoint**: `GET /v1/users/:id`
