@@ -5,6 +5,7 @@ import (
 
 	"learning/db"
 	"learning/models"
+	"learning/request"
 	"learning/response"
 	"learning/utils"
 
@@ -41,18 +42,17 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var u models.User
-	if err := utils.ParseJSON(r, &u); err != nil {
+	var req request.CreateUserRequest
+	if err := utils.ParseJSON(r, &req); err != nil {
 		utils.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "password hash error"})
 		return
 	}
-	u.Password = string(hashedPassword)
 
 	tx := db.DB.Begin()
 	if tx.Error != nil {
@@ -60,16 +60,22 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tx.Create(&u).Error; err != nil {
+	user := models.User{
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: string(hashedPassword),
+	}
+
+	if err := tx.Create(&user).Error; err != nil {
 		tx.Rollback()
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "insert user error"})
 		return
 	}
 
 	biodata := models.Biodata{
-		UserID:  u.ID,
-		Phone:   u.Biodata.Phone,
-		Address: u.Biodata.Address,
+		UserID:  user.ID,
+		Phone:   req.Phone,
+		Address: req.Address,
 	}
 
 	if err := tx.Create(&biodata).Error; err != nil {
@@ -78,18 +84,16 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.Biodata = &biodata
+	user.Biodata = &biodata
 
 	if err := tx.Commit().Error; err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "commit error"})
 		return
 	}
 
-	u.Password = ""
-
 	utils.JSON(w, http.StatusCreated, utils.Response{
 		Status:  true,
 		Message: "user created successfully",
-		Data:    response.ToUserResponse(&u),
+		Data:    response.ToCreateUserResponse(&user),
 	})
 }

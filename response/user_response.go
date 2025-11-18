@@ -15,8 +15,16 @@ type UserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type CreateUserResponse struct {
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Phone   string `json:"phone"`
+	Address string `json:"address"`
+}
+
 func ToUserResponse(u *models.User) *UserResponse {
-	resp := &UserResponse{
+	res := &UserResponse{
 		ID:        u.ID,
 		Name:      u.Name,
 		Email:     u.Email,
@@ -25,9 +33,24 @@ func ToUserResponse(u *models.User) *UserResponse {
 	}
 
 	if u.Biodata != nil {
-		resp.Phone = u.Biodata.Phone
-		resp.Address = u.Biodata.Address
+		res.Phone = u.Biodata.Phone
+		res.Address = u.Biodata.Address
 	}
 
-	return resp
+	return res
+}
+
+func ToCreateUserResponse(u *models.User) *CreateUserResponse {
+	res := &CreateUserResponse{
+		ID:    u.ID,
+		Name:  u.Name,
+		Email: u.Email,
+	}
+
+	if u.Biodata != nil {
+		res.Phone = u.Biodata.Phone
+		res.Address = u.Biodata.Address
+	}
+
+	return res
 }
