@@ -1,8 +1,8 @@
-# Go User Management API
+# Go Management API
 
 A simple REST API built with Go for managing user data. This project demonstrates basic Go web development concepts including database connections, HTTP handlers, and API response formatting.
 
-## Installation & Setup
+## Installation
 
 1. **Clone the repository**:
    ```bash
@@ -16,9 +16,8 @@ A simple REST API built with Go for managing user data. This project demonstrate
    ```
 
 3. **Set up the database**:
-   - Create a MySQL database for the project
-   - Create the `users` table:
-     ```sql
+   Create the `users` table:
+   ```sql
      CREATE TABLE users (
        id INT AUTO_INCREMENT PRIMARY KEY,
        name VARCHAR(255) NOT NULL,
@@ -28,7 +27,7 @@ A simple REST API built with Go for managing user data. This project demonstrate
      ```
 
 4. **Configure database connection**:
-   - Update the database connection string in `db/connection.go` with your MySQL credentials
+   Update the database connection string in `db/connection.go` with your MySQL credentials
 
 ## API Endpoints
 
@@ -37,14 +36,18 @@ A simple REST API built with Go for managing user data. This project demonstrate
 - **Description**: Retrieve all users from the database
 - **Response**:
   ```json
-  [
-    {
-      "id": 1,
-      "name": "John Doe",
-      "phone": "08123456789",
-      "address": "Jakarta, Indonesia"
-    }
-  ]
+  {
+    "status": true,
+    "message": "fetch all users",
+    "data": [
+      {
+        "id": 1,
+        "name": "John Doe",
+        "phone": "08123456789",
+        "address": "Jakarta, Indonesia"
+      }
+    ]
+  }
   ```
 
 ### Create User
