@@ -17,15 +17,29 @@ A simple REST API built with Go for managing user data. This project demonstrate
 
 3. **Set up the database**:
    
-   Create the `users` table:
+   Create the `users` and `biodatas` tables:
    ```sql
-     CREATE TABLE users (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       name VARCHAR(255) NOT NULL,
-       phone VARCHAR(20),
-       address TEXT
-     );
-     ```
+   CREATE TABLE users (
+     id INT AUTO_INCREMENT PRIMARY KEY,
+     name VARCHAR(255) NOT NULL,
+     email VARCHAR(255) UNIQUE NOT NULL,
+     password VARCHAR(80) NOT NULL,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     deleted_at DATETIME NULL
+   );
+   
+   CREATE TABLE biodatas (
+     id INT AUTO_INCREMENT PRIMARY KEY,
+     user_id INT NOT NULL UNIQUE,
+     phone VARCHAR(30),
+     address TEXT,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     deleted_at DATETIME NULL,
+     FOREIGN KEY (user_id) REFERENCES users(id)
+   );
+   ```
 
 4. **Configure database connection**:
    
@@ -34,7 +48,7 @@ A simple REST API built with Go for managing user data. This project demonstrate
 ## API Endpoints
 
 ### Get All Users
-- **Endpoint**: `GET /users`
+- **Endpoint**: `GET /v1/users`
 - **Description**: Retrieve all users from the database
 - **Response**:
   ```json
@@ -45,6 +59,7 @@ A simple REST API built with Go for managing user data. This project demonstrate
       {
         "id": 1,
         "name": "John Doe",
+        "email": "john.doe@example.com",
         "phone": "08123456789",
         "address": "Jakarta, Indonesia"
       }
@@ -53,12 +68,14 @@ A simple REST API built with Go for managing user data. This project demonstrate
   ```
 
 ### Create User
-- **Endpoint**: `POST /users`
+- **Endpoint**: `POST /v1/users`
 - **Description**: Create a new user
 - **Request Body**:
   ```json
   {
     "name": "Jane Doe",
+    "email": "jane@example.com",
+    "password": "secure",
     "phone": "08198765432",
     "address": "Bandung, Indonesia"
   }

@@ -16,7 +16,9 @@ func main() {
 
 	h := &handlers.UserHandler{DB: db.DB}
 
-	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+	v1 := http.NewServeMux()
+
+	v1.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			h.GetUsers(w, r)
@@ -26,6 +28,8 @@ func main() {
 			utils.JSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
 		}
 	})
+
+	http.Handle("/v1/", http.StripPrefix("/v1", v1))
 
 	http.ListenAndServe(":8080", nil)
 }

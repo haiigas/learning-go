@@ -6,6 +6,8 @@ import (
 
 	"learning/models"
 	"learning/utils"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
@@ -13,7 +15,14 @@ type UserHandler struct {
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.DB.Query("SELECT id, name, phone, address FROM users")
+	query := `
+		SELECT 
+			users.id, users.name, users.email,
+			biodatas.phone, biodatas.address
+		FROM users
+		LEFT JOIN biodatas ON biodatas.user_id = users.id
+	`
+	rows, err := h.DB.Query(query)
 	if err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "query error"})
 		return
@@ -23,7 +32,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Phone, &u.Address); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Phone, &u.Address); err != nil {
 			utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "scan error"})
 			return
 		}
@@ -49,17 +58,48 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.DB.Exec(
-		"INSERT INTO users (name, phone, address) VALUES (?, ?, ?)",
-		u.Name, u.Phone, u.Address,
-	)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "insert error"})
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "password hash error"})
+		return
+	}
+	u.Password = string(hashedPassword)
+
+	tx, err := h.DB.Begin()
+	if err != nil {
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "transaction error"})
 		return
 	}
 
-	id, _ := result.LastInsertId()
+	res, err := h.DB.Exec(
+		"INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+		u.Name, u.Email, u.Password,
+	)
+	if err != nil {
+		tx.Rollback()
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "insert user error"})
+		return
+	}
+
+	id, _ := res.LastInsertId()
 	u.ID = int(id)
+
+	_, err = tx.Exec(
+		"INSERT INTO biodatas (user_id, phone, address) VALUES (?, ?, ?)",
+		id, u.Phone, u.Address,
+	)
+	if err != nil {
+		tx.Rollback()
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "insert biodata error"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "commit error"})
+		return
+	}
+
+	u.Password = ""
 
 	utils.JSON(w, http.StatusCreated, utils.Response{
 		Status:  true,
