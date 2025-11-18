@@ -1,48 +1,37 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 
+	"learning/db"
 	"learning/models"
+	"learning/response"
 	"learning/utils"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
-	DB *sql.DB
+	DB *gorm.DB
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	query := `
-		SELECT 
-			users.id, users.name, users.email,
-			biodatas.phone, biodatas.address
-		FROM users
-		LEFT JOIN biodatas ON biodatas.user_id = users.id
-	`
-	rows, err := h.DB.Query(query)
-	if err != nil {
+	var users []models.User
+	if err := h.DB.Preload("Biodata").Find(&users).Error; err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "query error"})
 		return
 	}
-	defer rows.Close()
 
-	var users []models.User
-	for rows.Next() {
-		var u models.User
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Phone, &u.Address); err != nil {
-			utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "scan error"})
-			return
-		}
-		users = append(users, u)
+	var responses []*response.UserResponse
+	for _, u := range users {
+		responses = append(responses, response.ToUserResponse(&u))
 	}
 
 	utils.JSON(w, http.StatusOK, utils.Response{
 		Status:  true,
 		Message: "fetch all users",
-		Data:    users,
+		Data:    responses,
 	})
 }
 
@@ -65,36 +54,33 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	u.Password = string(hashedPassword)
 
-	tx, err := h.DB.Begin()
-	if err != nil {
+	tx := db.DB.Begin()
+	if tx.Error != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "transaction error"})
 		return
 	}
 
-	res, err := h.DB.Exec(
-		"INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-		u.Name, u.Email, u.Password,
-	)
-	if err != nil {
+	if err := tx.Create(&u).Error; err != nil {
 		tx.Rollback()
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "insert user error"})
 		return
 	}
 
-	id, _ := res.LastInsertId()
-	u.ID = int(id)
+	biodata := models.Biodata{
+		UserID:  u.ID,
+		Phone:   u.Biodata.Phone,
+		Address: u.Biodata.Address,
+	}
 
-	_, err = tx.Exec(
-		"INSERT INTO biodatas (user_id, phone, address) VALUES (?, ?, ?)",
-		id, u.Phone, u.Address,
-	)
-	if err != nil {
+	if err := tx.Create(&biodata).Error; err != nil {
 		tx.Rollback()
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "insert biodata error"})
 		return
 	}
 
-	if err := tx.Commit(); err != nil {
+	u.Biodata = &biodata
+
+	if err := tx.Commit().Error; err != nil {
 		utils.JSON(w, http.StatusInternalServerError, map[string]string{"error": "commit error"})
 		return
 	}
@@ -104,6 +90,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusCreated, utils.Response{
 		Status:  true,
 		Message: "user created successfully",
-		Data:    u,
+		Data:    response.ToUserResponse(&u),
 	})
 }

@@ -31,5 +31,6 @@ func main() {
 
 	http.Handle("/v1/", http.StripPrefix("/v1", v1))
 
+	log.Println("Server running on http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
 }
